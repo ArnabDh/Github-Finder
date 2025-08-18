@@ -16,6 +16,7 @@ public class RepositoryService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RepositoryRepo repositoryRepo;
+    int count=0;
 
     public RepositoryService(RepositoryRepo repositoryRepo){
         this.repositoryRepo = repositoryRepo;
@@ -56,7 +57,8 @@ public class RepositoryService {
             JsonNode items = root.path("items");
 
             for (JsonNode item : items) {
-                RepositoryEntity entity = new RepositoryEntity();
+                Long repoId = item.get("id").asLong();
+                RepositoryEntity entity = repositoryRepo.findById(repoId).orElse(new RepositoryEntity());
                 entity.setId(item.get("id").asLong());
                 entity.setName(item.get("name").asText());
                 entity.setOwner(item.get("owner").get("login").asText());
@@ -67,14 +69,17 @@ public class RepositoryService {
                 entity.setLastUpdated(OffsetDateTime.parse(item.get("updated_at").asText()));
 
                 result.add(entity);
+                repositoryRepo.save(entity);
+                count++;
             }
 
             // Save in DB
-            repositoryRepo.saveAll(result);
+            //repositoryRepo.saveAll(result);
+            System.out.println("count = "+count);
 
             responseMap.put("message", "Repositories fetched from GitHub API and saved to DB successfully");
             responseMap.put("repositories", result);
-            responseMap.put("count", result.size());
+            responseMap.put("count", Integer.toString(count));
 
         }  catch (Exception e) {
             responseMap.put("message", "Unexpected error: " + e.getMessage());
