@@ -19,11 +19,12 @@ public class RepositoryService {
 
     public RepositoryService(RepositoryRepo repositoryRepo){
         this.repositoryRepo = repositoryRepo;
-
     }
 
+    public Map<String, Object> searchRepositories(String query, String language, String sort) {
+        Map<String, Object> responseMap = new HashMap<>();
+        List<RepositoryEntity> result = new ArrayList<>();
 
-    public List<RepositoryEntity> searchRepositories(String query, String language, String sort) {
         try {
             // Build GitHub API URL dynamically
             StringBuilder urlBuilder = new StringBuilder("https://api.github.com/search/repositories?q=");
@@ -45,14 +46,15 @@ public class RepositoryService {
             );
 
             if (response.getStatusCode() != HttpStatus.OK) {
-                throw new RuntimeException("GitHub API error: " + response.getStatusCode());
+                responseMap.put("message", "GitHub API returned error: " + response.getStatusCode());
+                responseMap.put("repositories", Collections.emptyList());
+                responseMap.put("count", 0);
+                return responseMap;
             }
 
             JsonNode root = objectMapper.readTree(response.getBody());
             JsonNode items = root.path("items");
 
-            //List<Map<String, Object>> result = new ArrayList<>();
-            List<RepositoryEntity> result = new ArrayList<>();
             for (JsonNode item : items) {
                 RepositoryEntity entity = new RepositoryEntity();
                 entity.setId(item.get("id").asLong());
@@ -62,7 +64,6 @@ public class RepositoryService {
                 entity.setLanguage(item.get("language").asText(""));
                 entity.setStars(item.get("stargazers_count").asLong());
                 entity.setForks(item.get("forks_count").asLong());
-                // Parse ISO date string into OffsetDateTime
                 entity.setLastUpdated(OffsetDateTime.parse(item.get("updated_at").asText()));
 
                 result.add(entity);
@@ -71,10 +72,16 @@ public class RepositoryService {
             // Save in DB
             repositoryRepo.saveAll(result);
 
-            return result;
+            responseMap.put("message", "Repositories fetched from GitHub API and saved to DB successfully");
+            responseMap.put("repositories", result);
+            responseMap.put("count", result.size());
 
-        } catch (Exception e) {
-            throw new RuntimeException("Error fetching GitHub data: " + e.getMessage(), e);
+        }  catch (Exception e) {
+            responseMap.put("message", "Unexpected error: " + e.getMessage());
+            responseMap.put("repositories", Collections.emptyList());
+            responseMap.put("count", 0);
         }
+
+        return responseMap;
     }
 }
