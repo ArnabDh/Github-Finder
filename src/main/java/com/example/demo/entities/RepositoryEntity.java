@@ -19,6 +19,7 @@ public class RepositoryEntity {
     @Column(nullable = false)
     private String owner;
 
+    @Column
     private String language;
 
     @Column(nullable = false)

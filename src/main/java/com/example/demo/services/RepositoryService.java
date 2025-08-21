@@ -18,7 +18,7 @@ public class RepositoryService {
     private final RepositoryRepo repositoryRepo;
     int count=0;
 
-    public RepositoryService(RepositoryRepo repositoryRepo){
+    public RepositoryService(RepositoryRepo repositoryRepo, RestTemplate restTemplate){
         this.repositoryRepo = repositoryRepo;
     }
 
